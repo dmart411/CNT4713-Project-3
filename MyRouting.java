@@ -177,24 +177,19 @@ public class MyRouting implements IOFMessageListener, IFloodlightModule {
 		// We process only IP packets of type 0x0800.
 		if (eth.getEtherType() != 0x0800) {
 			return Command.CONTINUE;
-		}
-		else{
+		}else{
 			System.out.println("*** New flow packet");
 
 			// Parse the incoming packet.
 			OFPacketIn pi = (OFPacketIn)msg;
 			OFMatch match = new OFMatch();
-		    match.loadFromPacket(pi.getPacketData(), pi.getInPort());	
+		   	match.loadFromPacket(pi.getPacketData(), pi.getInPort());	
 			
 			// Obtain source and destination IPs.
-			// ...
-		    System.out.println("srcIP: " + match.getNetworkSourceCIDR());
-		    System.out.println("dstIP: " + match.getNetworkDestinationCIDR());
-		    //System.out.println("srcIP: " + "a.b.c.d");
-	        //System.out.println("dstIP: " + "a.b.c.d");
+		    	System.out.println("srcIP: " + match.getNetworkSourceCIDR());
+		    	System.out.println("dstIP: " + match.getNetworkDestinationCIDR());
 
-
-			// Calculate the path using Dijkstra's algorithm.
+			// dijkstras algorithm
 			Route route = null;
 			
 			Map<Long, Set<Link>> switchesIDS = lds.getSwitchLinks();
@@ -249,7 +244,6 @@ public class MyRouting implements IOFMessageListener, IFloodlightModule {
 						nxt.remove(0);
 				}
 			}
-			// ...
 			System.out.println("route: " + "1 2 3 ...");			
 			
 			// Write the path into the flow tables of the switches on the path.
@@ -261,7 +255,7 @@ public class MyRouting implements IOFMessageListener, IFloodlightModule {
 		}
 	}
 
-	// Install routing rules on switches. 
+	// Install routing rules
 	private void installRoute(List<NodePortTuple> path, OFMatch match) {
 
 		OFMatch m = new OFMatch();
