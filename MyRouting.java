@@ -14,6 +14,7 @@ package net.floodlightcontroller.myrouting;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -139,6 +140,33 @@ public class MyRouting implements IOFMessageListener, IFloodlightModule {
 			System.out.println("*** Print topology");
 
 			// For each switch, print its neighbor switches.
+			links = new HashMap<>(lds.getLinks());
+			
+			Map<Long, Set<Link>> switchesListing = lds.getSwitchLinks();
+			for(Map.Entry<Long, Set<Link>> beginning : switchesListing.entrySet()) {
+				System.out.print("switch " + beginning.getKey() + " neighbors: ");
+				HashSet<Long> linkingID = new HashSet<Long>();
+				
+				for (Link linkConnect : beginning.getValue()) {
+					if(beginning.getKey() == linkConnect.getDst())
+						linkingID.add(linkConnect.getSrc());
+					else
+						linkingID.add(linkConnect.getDst());
+				}
+				
+				boolean firstLinkConnection = true;
+				
+				for (Long iD : linkingID) {
+					if(firstLinkConnection) {
+						System.out.print(iD);
+						firstLinkConnection = false;
+					}
+					else
+						System.out.print(", " + iD);
+				}
+				System.out.println();
+				
+			}
 
 			printedTopo = true;
 		}
@@ -162,15 +190,70 @@ public class MyRouting implements IOFMessageListener, IFloodlightModule {
 			
 			// Obtain source and destination IPs.
 			// ...
-			System.out.println("srcIP: " + "a.b.c.d");
-	        System.out.println("dstIP: " + "a.b.c.d");
+		    System.out.println("srcIP: " + match.getNetworkSourceCIDR());
+		    System.out.println("dstIP: " + match.getNetworkDestinationCIDR());
+		    //System.out.println("srcIP: " + "a.b.c.d");
+	        //System.out.println("dstIP: " + "a.b.c.d");
 
 
 			// Calculate the path using Dijkstra's algorithm.
 			Route route = null;
+			
+			Map<Long, Set<Link>> switchesIDS = lds.getSwitchLinks();
+			
+			if(!switchesIDS.isEmpty()) {
+				Set<Long> prvSeen = new HashSet<>();
+				Map<Long, Integer> dist = new HashMap<>();
+				Map<Long, Long> parent = new HashMap<>();
+				List<Long> nxt = new ArrayList<>();
+				
+				for (Map.Entry<Long, Set<Link>> beginning : switchesIDS.entrySet()) {
+					dist.put(beginning.getKey(), Integer.MAX_VALUE);
+					parent.put(beginning.getKey(), beginning.getKey());
+				}
+				
+				Long sourceID = eth.getSourceMAC().toLong();
+				Long destinationID = eth.getDestinationMAC().toLong();
+				
+				dist.put(sourceID, 0);
+				nxt.add(sourceID);
+				
+				while (!nxt.isEmpty()) {
+					if(!prvSeen.contains(nxt.get(0))) {
+						Long nodesID = nxt.get(0);
+						Set<Link> neighbors = switchesIDS.get(nodesID);
+						
+						for(Link neighbor : neighbors) {
+							if(neighbor.getSrc() == nodesID) {
+								if(!prvSeen.contains(neighbor.getDst())) {
+									nxt.add(neighbor.getDst());
+									int linkCost = 10 + dist.get(nodesID);
+									
+									if (nodesID % 2 == 0 && neighbor.getDst() % 2 == 0)
+										linkCost = 100 + dist.get(nodesID);
+									
+									else if (nodesID % 2 != 0 && neighbor.getDst() %2 != 0)
+										linkCost = 1 + dist.get(nodesID);
+									
+									int currCost = dist.get(neighbor.getDst());
+									if (linkCost < currCost) {
+										parent.put(neighbor.getDst(), nodesID);
+										dist.put(neighbor.getDst(), linkCost);
+									}
+									
+								}
+							}
+						}
+						prvSeen.add(nodesID);
+						nxt.remove(0);
+					}
+					else
+						nxt.remove(0);
+				}
+			}
 			// ...
 			System.out.println("route: " + "1 2 3 ...");			
-
+			
 			// Write the path into the flow tables of the switches on the path.
 			if (route != null) {
 				installRoute(route.getPath(), match);
