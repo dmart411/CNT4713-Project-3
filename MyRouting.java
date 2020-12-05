@@ -1,12 +1,10 @@
 /*******************
 
 Team members and IDs:
-Name1 ID1
-Name2 ID2
-Name3 ID3
+Daniel Martinez 6060454
+Curt Brix 6214765
 
-Github link:
-https://github.com/xxx/yyy
+Github link: https://github.com/dmart411/CNT4713-Project-3
 
 *******************/
 
